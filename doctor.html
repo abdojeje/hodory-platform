@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بوابة الدكتور</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.subject{background:#eef; padding:5px 10px; border-radius:15px; margin:3px; display:inline-block}
+#motivationDoc{background:linear-gradient(90deg,#11998e,#38ef7d); color:white; padding:15px; border-radius:12px; text-align:center; font-size:17px; margin:15px 0;}
+button{padding:10px 20px; margin:5px; border:none; border-radius:8px; cursor:pointer; font-size:16px}
+.btn-hader{background:#28a745; color:#fff} .btn-ghayeb{background:#dc3545; color:#fff}
+</style>
+</head>
+<body>
+<div class="container" style="max-width:700px; margin:auto; padding:20px; text-align:center;">
+  <h1>👨‍🏫 بوابة الدكتور</h1>
+  <p id="today1" style="color:#666"></p>
+  
+  <div id="motivationDoc"></div>
+
+  <div style="background:#f9f9f9; padding:20px; border-radius:15px; margin-top:15px;">
+    <h2 id="docName">جاري تحميل البيانات...</h2>
+    <p id="docSubjects"></p>
+    <p>⏰ <span id="docTime"></span></p>
+    <p id="dayNameDoc" style="font-weight:bold; color:#6a11cb;"></p>
+  </div>
+
+  <div style="margin-top:20px;">
+    <textarea id="note" placeholder="اكتب ملاحظة للطلاب (مثال: الاختبار الاسبوع القادم...)" style="width:100%; height:80px; padding:10px; border-radius:10px;"></textarea>
+    <br><br>
+    <button class="btn-hader" onclick="setStatus('حاضر')">✅ حاضر</button>
+    <button class="btn-ghayeb" onclick="setStatus('غايب')">❌ غايب</button>
+    <p id="msg" style="margin-top:15px; font-weight:bold; color:#28a745;"></p>
+  </div>
+
+  <br>
+  <button onclick="logout()" style="background:#666; color:#fff;">تسجيل خروج</button>
+</div>
+
+<script src="app.js"></script>
+<script type="module">
+  // 1. استيراد مكتبات Firebase
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // 2. إعدادات قاعدة البيانات الجديدة
+  const firebaseConfig = {
+    apiKey: "AIzaSyA484iRMD6z45T_fXRogFlHTykByj5hLRA",
+    authDomain: "hodoory-4ed61.firebaseapp.com",
+    projectId: "hodoory-4ed61",
+    storageBucket: "hodoory-4ed61.firebasestorage.app",
+    messagingSenderId: "604023862556",
+    appId: "1:604023862556:web:59a7c16d7dae1e7b4bb6d9",
+    measurementId: "G-QH6612YWMZ"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 3. التحقق من تسجيل الدخول وجلب بيانات الدكتور
+  const doctorCode = localStorage.getItem('currentDoctor');
+  if (!doctorCode) {
+    window.location.href = "index.html"; // إعادة التوجيه إذا لم يسجل الدخول
+  } else {
+    const docRef = doc(db, "doctor", doctorCode);
+    getDoc(docRef).then(snapshot => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        document.getElementById('docName').innerText = data.name;
+        document.getElementById('docSubjects').innerHTML = data.subjects.map(s => `<span class="subject">${s}</span>`).join(' ');
+        document.getElementById('docTime').innerText = data.time;
+      } else {
+        document.getElementById('docName').innerText = "بيانات الدكتور غير موجودة";
+      }
+    }).catch(err => {
+      document.getElementById('docName').innerText = "خطأ في الاتصال: " + err.message;
+    });
+  }
+
+  // 4. دالة تسجيل الحضور (مربوطة بـ window لتعمل مع onclick في HTML)
+  window.setStatus = async function(status) {
+    const note = document.getElementById('note').value.trim() || "-";
+    const msgEl = document.getElementById('msg');
+    msgEl.innerText = "⏳ جاري الحفظ في قاعدة البيانات...";
+    msgEl.style.color = "#d97706";
+
+    try {
+      const now = new Date();
+      const dateStr = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+      const dayName = now.toLocaleDateString('ar-LY', { weekday: 'long' });
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const attendanceRef = doc(db, "attendance", dateStr);
+      const snap = await getDoc(attendanceRef);
+      
+      const recordData = { status: status, note: note, time: timeStr };
+
+      if (snap.exists()) {
+        // تحديث السجل الموجود
+        await updateDoc(attendanceRef, { [`records.${doctorCode}`]: recordData });
+      } else {
+        // إنشاء سجل جديد لليوم
+        await setDoc(attendanceRef, {
+          date: dateStr,
+          dayName: dayName,
+          records: { [doctorCode]: recordData }
+        });
+      }
+      
+      msgEl.innerText = `✅ تم تسجيل الحضور بنجاح كـ: ${status}`;
+      msgEl.style.color = "#28a745";
+    } catch (error) {
+      msgEl.innerText = "❌ فشل الحفظ: " + error.message;
+      msgEl.style.color = "red";
+    }
+  };
+
+  // 5. دالة تسجيل الخروج
+  window.logout = function() {
+    localStorage.removeItem('currentDoctor');
+    window.location.href = "index.html";
+  };
+
+  // 6. كود التحفيز والتاريخ الأصلي الخاص بك (لم يتم حذف أي حرف منه)
+  const docMotivations = [
+    " أهلا بك دكتورنا العزيز، حضورك اليوم يصنع فرق في مستقبل طلابك!",
+    " شكرا لعطائك، نتمنى لك يوم تدريسي موفق ومليء بالانجاز!",
+    " كلماتك اليوم قد تغير حياة طالب، شكرا لوجودك!",
+    " نحن فخورون بك، يوم جميل نتمناه لك!",
+    " ابتسامتك في المحاضرة تحفز الطلاب أكثر مما تتخيل!"
+  ];
+  
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const el = document.getElementById('motivationDoc');
+    if(el) el.innerText = docMotivations[new Date().getDate() % docMotivations.length];
+    
+    const el2 = document.getElementById('dayNameDoc');
+    if(el2){
+      const day = new Date().toLocaleDateString('ar-LY',{weekday:'long'});
+      el2.innerText = `اليوم: ${day} - السيم الرابع`;
+    }
+    
+    const el3 = document.getElementById('today1');
+    if(el3) el3.innerText = new Date().toLocaleDateString('ar-LY');
+  });
+</script>
+</body>
+</html>

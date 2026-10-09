@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>بوابة الحضور الذكي - لوحة الآراء</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+  <h1 style="font-weight:900">📩 لوحة تحكم فاطمة</h1>
+  <p style="color:#666; font-size:13px">هنا توصلك كل الآراء من صفحة التجربة</p>
+  <div class="card" id="list"></div>
+  <div style="display:flex; gap:8px">
+    <button class="btn btn-blue" onclick="load()" style="width:auto">🔄 تحديث</button>
+    <button class="btn btn-gray" onclick="copyAll()" style="width:auto">📋 نسخ</button>
+  </div>
+</div>
+<script>
+function load(){
+  let all = JSON.parse(localStorage.getItem('feedback') || '[]');
+  let box = document.getElementById('list');
+  if(!all.length){
+    box.innerHTML = '<p style="color:#999">مازال مافيش ولا رأي.. جربي اكتبي واحد من index.html وبعدين تعالي هنا وديري تحديث</p>';
+    return;
+  }
+  box.innerHTML = all.map((c,i)=>`
+    <div style="padding:14px 0; border-bottom:1px solid #f0f0f0">
+      <b>${i+1}. ${c.name}</b> <small style="color:#999">- ${c.time}</small>
+      <div style="margin-top:6px; background:#fafafa; padding:10px; border-radius:8px">${c.msg}</div>
+    </div>
+  `).join('');
+}
+function copyAll(){
+  let all = localStorage.getItem('feedback');
+  navigator.clipboard.writeText(all);
+  alert('تم نسخ كل الآراء ✅');
+}
+load();
+setInterval(load, 2000); // تحديث كل ثانيتين تلقائيا
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>بوابة الحضور الذكي</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="logo">بوابة الحضور الذكي</div>
+  <nav>
+    <a href="student.html">دخول الطلبة</a>
+    <a href="#login">دخول الدكاترة</a>
+  </nav>
+</header>
+
+<div class="container">
+
+  <div class="hero">
+    <div style="font-size:11px; font-weight:900; background:#ffef5c; display:inline-block; padding:4px 10px; border-radius:6px; margin-bottom:16px">موقع تجريبي - BETA</div>
+    <h1>بوابة الحضور الذكي</h1>
+    <p style="margin-top:12px; font-size:16px; line-height:1.8">
+     <br>
+      المنفذ: الطالبة <b >فاطمة</b><br>
+      <span style="color:#888; font-size:13px">قسم تقنية المعلومات - السيم الرابع</span>
+    </p>
+    <div style="margin-top:24px; display:flex; gap:10px">
+      <a href="student.html" style="background:#0a0a0a; color:white; padding:12px 22px; border-radius:10px; text-decoration:none; font-weight:900; font-size:13px">جرب كطالب</a>
+      <a href="#login" style="background:white; border:1px solid #e5e5e5; padding:12px 22px; border-radius:10px; text-decoration:none; font-weight:900; font-size:13px; color:#0a0a0a">جرب كدكتور</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>عن المنصة</h2>
+    <p>
+      هذه المنصة هي موقع تجريبي، والهدف منها تسهيل معرفة حضور الدكاترة لطلبة السيم الرابع.
+      <br>سيتم تطويرها قريبا لتصبح مشروع تخرج متكامل بقاعدة بيانات حقيقية.
+    </p>
+  </div>
+
+  <div class="card" id="login">
+    <h3>دخول الدكاترة - للتجربة</h3>
+    <input id="code" placeholder="اكتب كود التجربة: WALEED01">
+    <button class="btn btn-blue" onclick="login()">دخول</button>
+    <p id="err" style="color:red; font-size:12px; margin-top:8px"></p>
+  </div>
+
+  <div class="card" id="feedback">
+    <h2>💬 آراء واقتراحات</h2>
+    <p>المنصة تحت التجربة، اترك رأيك لمساعدتنا في التطوير</p>
+    <input id="name" placeholder="اسمك">
+    <textarea id="msg" rows="3" placeholder="اكتب اقتراحك هنا..."></textarea>
+    <button class="btn btn-blue" onclick="addComment()">إرسال</button>
+    <!-- تم إضافة هذا السطر برمجياً في الأسفل إذا لم يكن موجوداً لضمان عمل الكود دون حذف أي شيء -->
+  </div>
+
+  <div style="text-align:center; padding:30px 0; color:#aaa; font-size:12px; font-weight:700">
+    بوابة الحضور الذكي - موقع تجريبي<br>
+    تنفيذ الطالبة /  فاطمة - 2026
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+<script type="module">
+  // 1. استيراد مكتبات Firebase الجديدة
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // 2. إعدادات قاعدة البيانات الجديدة الخاصة بك
+  const firebaseConfig = {
+    apiKey: "AIzaSyA484iRMD6z45T_fXRogFlHTykByj5hLRA",
+    authDomain: "hodoory-4ed61.firebaseapp.com",
+    projectId: "hodoory-4ed61",
+    storageBucket: "hodoory-4ed61.firebasestorage.app",
+    messagingSenderId: "604023862556",
+    appId: "1:604023862556:web:59a7c16d7dae1e7b4bb6d9",
+    measurementId: "G-QH6612YWMZ"
+  };
+
+  // 3. تهيئة التطبيق
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 4. دالة تسجيل الدخول (مربوطة الآن بقاعدة البيانات الحقيقية)
+  window.login = async function() {
+    let c = document.getElementById('code').value.trim().toUpperCase();
+    let errEl = document.getElementById('err');
+    errEl.innerText = "جاري التحقق من قاعدة البيانات...";
+    
+    try {
+      // البحث عن الدكتور في مجموعة "doctor" باستخدام الكود كمعرّف للمستند
+      const docRef = doc(db, "doctor", c);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        // حفظ الكود للانتقال لصفحة الدكتور (للحفاظ على توافق الكود القديم)
+        localStorage.setItem('currentDoctor', c);
+        window.location.href = "doctor.html";
+      } else {
+        errEl.innerText = "الكود غير صحيح";
+      }
+    } catch (error) {
+      errEl.innerText = "خطأ في الاتصال: " + error.message;
+    }
+  };
+
+  // 5. دالة إضافة الاقتراحات إلى قاعدة البيانات
+  window.addComment = async function() {
+    let name = document.getElementById('name').value || "زائر";
+    let msg = document.getElementById('msg').value;
+    if (!msg) return;
+    
+    try {
+      await addDoc(collection(db, "feedback"), {
+        name: name,
+        msg: msg,
+        time: new Date().toLocaleString('ar-LY')
+      });
+      document.getElementById('msg').value = "";
+      alert("تم إرسال اقتراحك بنجاح!");
+    } catch (error) {
+      alert("فشل الإرسال: " + error.message);
+    }
+  };
+
+  // 6. دالة عرض الاقتراحات مباشرة من قاعدة البيانات بشكل حي
+  window.renderComments = function() {
+    // إنشاء العنصر برمجياً إذا لم يكن موجوداً في HTML الأصلي لضمان عدم حدوث خطأ
+    if (!document.getElementById('commentsList')) {
+      const feedbackCard = document.getElementById('feedback');
+      const listDiv = document.createElement('div');
+      listDiv.id = 'commentsList';
+      listDiv.style.marginTop = '15px';
+      feedbackCard.appendChild(listDiv);
+    }
+
+    const box = document.getElementById('commentsList');
+    box.innerHTML = '<p style="color:#888; font-size:12px">جاري تحميل الآراء...</p>';
+
+    // الاستماع لأي تغييرات في مجموعة feedback وتحديث الشاشة فوراً
+    onSnapshot(collection(db, "feedback"), (snapshot) => {
+      let all = [];
+      snapshot.forEach((doc) => {
+        all.push(doc.data());
+      });
+      
+      // عكس الترتيب ليظهر الأحدث أولاً
+      all.reverse();
+      
+      if (all.length === 0) {
+        box.innerHTML = '<p style="color:#888; font-size:13px">لا توجد اقتراحات بعد. كن أول من يشارك!</p>';
+      } else {
+        box.innerHTML = all.map(c => `<div style="padding:10px 0; border-top:1px solid #f0f0f0"><b style="font-size:13px">${c.name}</b> <small style="color:#999">- ${c.time}</small><div style="margin-top:4px; font-size:13px">${c.msg}</div></div>`).join('');
+      }
+    });
+  };
+
+  document.addEventListener('DOMContentLoaded', window.renderComments);
+</script>
+</body>
+</html>
